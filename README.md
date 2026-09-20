@@ -1,80 +1,74 @@
-# Adaptive Patch Size ViT + Structured Magnitude-Based Pruning
+# Dynamic Patch Vision Transformer with Structured Magnitude-Based Pruning for Efficient Edge Deployment
 
-Implementasi kode untuk skripsi:
+This repo implements two core contributions, evaluated on a leaf-disease classification task (Plant Village Dataset):
 
-> **Modifikasi Arsitektur Vision Transformer Menggunakan Adaptive Patch Size yang Dioptimalkan melalui Structured Magnitude-Based Pruning untuk Klasifikasi Patologi Daun pada Kondisi Pencahayaan Dinamis**
-> Nurul Wachdan Alaudin — NIM 231080200106 — Informatika, Universitas Muhammadiyah Sidoarjo (UMSIDA)
+1. **Adaptive Patch Size** — a Vision Transformer that doesn't use one fixed patch size. Each region of an image is scored for visual complexity with an *Information Complexity Score* (ICS = local pixel variance + Sobel gradient magnitude), then assigned a patch size of 8×8 (complex/detailed regions), 16×16 (moderate), or 32×32 (homogeneous regions) instead of a single fixed patch size like a standard ViT.
+2. **Structured Magnitude-Based Pruning** — pruning whole neurons (not individual weights) in the Transformer's MLP blocks, based on the L1-norm of their incoming weight vectors, searched iteratively alongside fine-tuning to shrink the model's size/compute without letting accuracy drop past a set tolerance.
 
-Repo ini berisi dua kontribusi utama yang diuji pada tugas klasifikasi penyakit daun (Plant Village Dataset):
+Robustness to **dynamic lighting conditions** (brightness/contrast shifts and gamma correction) is simulated and evaluated separately from accuracy under normal lighting.
 
-1. **Adaptive Patch Size** — Vision Transformer dengan ukuran patch yang tidak seragam. Setiap region gambar dinilai kompleksitasnya lewat *Information Complexity Score* (ICS = varians piksel lokal + magnitude gradien Sobel), lalu diberi ukuran patch 8×8 (region kompleks/detail), 16×16 (sedang), atau 32×32 (region homogen) — bukan satu ukuran patch tetap seperti ViT standar.
-2. **Structured Magnitude-Based Pruning** — pemangkasan seluruh neuron (bukan bobot individual) pada blok MLP Transformer berdasarkan norma-L1 bobot masuknya, dicari secara iteratif sambil fine-tuning, untuk menekan ukuran/komputasi model tanpa menjatuhkan akurasi lebih dari toleransi yang ditentukan.
+## Project structure
 
-Ketahanan model terhadap **kondisi pencahayaan dinamis** (perubahan brightness/contrast dan gamma) juga disimulasikan dan dievaluasi terpisah dari akurasi pada kondisi normal.
-
-## Struktur proyek
-
-```
-adaptive_vit/                  # library generik, tidak terikat ke dataset tertentu
-├── config.py                  # dataclass konfigurasi (DataConfig, ICSConfig, ModelConfig, TrainConfig, PruningConfig)
-├── data.py                    # scan dataset, validasi (corrupt/duplikat/near-duplikat), split, Dataset class
-├── preprocessing.py           # transform (resize, normalisasi, simulasi pencahayaan)
-├── ics.py                     # Information Complexity Score & penentuan patch_size_map
-├── patch_embedding.py         # ekstraksi patch adaptif + collate_fn untuk DataLoader
+\```
+adaptive_vit/                  # generic library, not tied to any specific dataset
+├── config.py                  # config dataclasses (DataConfig, ICSConfig, ModelConfig, TrainConfig, PruningConfig)
+├── data.py                    # dataset scanning, validation (corrupt/duplicate/near-duplicate), splitting, Dataset class
+├── preprocessing.py           # transforms (resize, normalization, lighting simulation)
+├── ics.py                     # Information Complexity Score & patch_size_map computation
+├── patch_embedding.py         # adaptive patch extraction + DataLoader collate_fn
 ├── vit_model.py                # ModifiedVisionTransformer (adaptive) & BaselineVisionTransformer (fixed patch)
-├── train.py                    # training loop generik
+├── train.py                    # generic training loop
 ├── pruning.py                  # structured magnitude-based pruning + iterative search
-├── evaluate.py                  # metrik klasifikasi, efisiensi (FLOPs), perbandingan baseline vs. optimized
-└── visualize.py                 # semua figure (kurva training, hasil pruning, perbandingan model, peta patch adaptif)
+├── evaluate.py                  # classification metrics, efficiency (FLOPs), baseline-vs-optimized comparison
+└── visualize.py                 # all figures (training curves, pruning search, model comparison, adaptive patch map)
 
 examples/
-├── plantvillage_taxonomy.py            # adapter khusus dataset Plant Village (spesies + kondisi -> 29 kelas)
-├── plantvillage_pipeline_example.py    # skrip referensi urutan pemanggilan, end-to-end (dokumentasi, bukan untuk dijalankan mentah-mentah)
-└── main.ipynb                          # notebook Colab siap-jalan, cell demi cell, memanggil seluruh pipeline di atas
-```
+├── plantvillage_taxonomy.py            # dataset-specific adapter for Plant Village (species + condition -> 29 classes)
+├── plantvillage_pipeline_example.py    # end-to-end reference script showing the call order (documentation, not meant to be run blindly)
+└── main.ipynb                          # ready-to-run Colab notebook, cell by cell, wiring the whole pipeline above together
+\```
 
-`adaptive_vit/` murni generik: kalau dataset kamu sudah dalam bentuk `root/<nama_kelas>/*.jpg`, kamu bisa lewati `plantvillage_taxonomy.py` sama sekali dan langsung pakai `adaptive_vit.data.scan_imagefolder(root)`.
+`adaptive_vit/` is fully generic: if your dataset already follows a plain `root/<class_name>/*.jpg` layout, you can skip `plantvillage_taxonomy.py` entirely and call `adaptive_vit.data.scan_imagefolder(root)` directly.
 
-## Instalasi
+## Installation
 
-```bash
-git clone <url-repo-kamu>
-cd <nama-repo>
+\```bash
+git clone [https://github.com/Quepi14/Modified-Vision-Trransformer](https://github.com/Quepi14/Modified-Vision-Trransformer)
 pip install -r requirements.txt
-```
+\```
 
-(Opsional) supaya `import adaptive_vit` bisa dipanggil dari mana saja tanpa utak-atik `sys.path`, install sebagai package lokal:
+(Optional) to import `adaptive_vit` from anywhere without fiddling with `sys.path`, install it as a local package:
 
-```bash
+\```bash
 pip install -e .
-```
+\```
 
 ## Dataset
 
-Studi ini memakai **Plant Village Dataset (Updated)** oleh `tushar5harma` di Kaggle — 9 spesies tanaman, 29 kelas total (kombinasi spesies × kondisi/penyakit).
+This study uses the **Plant Village Dataset (Updated)** by `tushar5harma` on Kaggle — 9 plant species, 29 classes in total (species × condition/disease combinations).
 
-```bash
-# via Kaggle CLI (butuh kaggle.json terlebih dahulu)
+\```bash
+# via the Kaggle CLI (requires kaggle.json to be set up first)
 kaggle datasets download -d tushar5harma/plant-village-dataset-updated
 unzip plant-village-dataset-updated.zip -d plant-village-dataset-updated
-```
+\```
 
-Setelah diekstrak, `DataConfig.dataset_root` harus menunjuk ke folder yang di dalamnya langsung berisi folder per spesies.
+Once extracted, `DataConfig.dataset_root` should point to the folder that directly contains one subfolder per species.
 
-## Cara pakai
+## Usage
 
-### Opsi 1 — Google Colab (paling gampang)
+### Option 1 — Google Colab (easiest)
 
-1. Upload folder `adaptive_vit/` dan `examples/` ke Google Drive (atau clone repo ini langsung di Colab lewat `git clone`).
-2. Buka `examples/main.ipynb` di Colab.
-3. Jalankan cell 0a (mount Drive + `sys.path`) dan cell 0b (siapkan dataset), sesuaikan path-nya.
-4. Jalankan sisanya berurutan dari atas ke bawah — setiap cell sudah diberi judul markdown (Cell 1 s.d. Cell 10) yang mengikuti alur: scan & validasi dataset → split 80:10:10 → hitung mean/std → fit parameter ICS → bangun DataLoader → training Modified ViT → training Baseline ViT (pembanding) → pruning + fine-tuning → evaluasi test set → generate figure untuk BAB IV.
+1. Upload the `adaptive_vit/` and `examples/` folders to Google Drive (or `git clone` this repo directly inside Colab).
+2. Open `examples/main.ipynb` in Colab.
+3. Run cell 0a (mount Drive + set up `sys.path`) and cell 0b (point it at your dataset), adjusting the paths as needed.
+4. Run the rest top to bottom — each cell has a markdown heading (Cell 1 through Cell 10) following the pipeline: scan & validate the dataset → 80:10:10 split → compute mean/std → fit ICS parameters → build DataLoaders → train the Modified ViT → train the Baseline ViT (for comparison) → prune + fine-tune → evaluate on the test set → generate the figures for the results chapter.
 
-### Opsi 2 — Python biasa (lokal / server)
+### Option 2 — Plain Python (local machine / server)
 
-Contoh minimal memakai library ini langsung (lihat `examples/plantvillage_pipeline_example.py` untuk versi lengkapnya, termasuk fit ICS dan evaluasi):
+A minimal example using the library directly (see `examples/plantvillage_pipeline_example.py` for the full version, including fitting ICS parameters and evaluation):
 
-```python
+\```python
 import functools
 import torch
 from torch.utils.data import DataLoader
@@ -86,64 +80,64 @@ from adaptive_vit import (
 from adaptive_vit import data as avdata, preprocessing
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-data_cfg = DataConfig(dataset_root="/path/ke/plant-village-dataset-updated")
+data_cfg = DataConfig(dataset_root="/path/to/plant-village-dataset-updated")
 ics_cfg = ICSConfig()
 train_cfg = TrainConfig()
 
-# PENTING: region_size collate_fn HARUS diikat ke ics_cfg.region_size lewat
-# functools.partial. DataLoader hanya memanggil collate_fn dengan satu
-# argumen (batch), jadi default bawaan adaptive_collate_fn (region_size=32)
-# TIDAK otomatis mengikuti ICSConfig -- kalau kamu mengubah region_size di
-# config tapi lupa mengikatnya di sini, ekstraksi patch akan korup diam-diam.
+# IMPORTANT: bind collate_fn's region_size to ics_cfg.region_size via
+# functools.partial. DataLoader only calls collate_fn with a single argument
+# (the batch), so adaptive_collate_fn's own default (region_size=32) does
+# NOT automatically follow your ICSConfig -- if you change region_size in
+# the config but forget to bind it here, patch extraction breaks silently.
 collate_fn = functools.partial(adaptive_collate_fn, region_size=ics_cfg.region_size)
 
 samples, class_names = avdata.scan_imagefolder(data_cfg.dataset_root)
 valid_samples, report = avdata.validate_dataset(
     samples, class_names, min_resolution=data_cfg.image_size,
     imbalance_tolerance=data_cfg.class_imbalance_tolerance,
-    check_near_duplicates=True,  # opsional: deteksi gambar duplikat termasuk versi flip
+    check_near_duplicates=True,  # optional: also catch duplicate images, including flipped copies
 )
 
 model_cfg = ModelConfig(num_classes=len(class_names))
 model = ModifiedVisionTransformer(model_cfg)
-# ... bangun Dataset/DataLoader (lihat examples/plantvillage_pipeline_example.py
-#     Cell 3-5 untuk fit mean/std dan alpha/beta/p30/p70 sebelum sampai di sini) ...
+# ... build the Dataset/DataLoader objects here (see examples/plantvillage_pipeline_example.py
+#     Cells 3-5 for fitting mean/std and alpha/beta/p30/p70 before this point) ...
 model, history = train_model(model, train_loader, val_loader, train_cfg, device)
-```
+\```
 
-Untuk dataset PlantVillage secara spesifik, ganti `avdata.scan_imagefolder(...)` dengan `plantvillage_taxonomy.scan_plantvillage_dataset(...)` — sisanya identik.
+For the Plant Village dataset specifically, swap `avdata.scan_imagefolder(...)` for `plantvillage_taxonomy.scan_plantvillage_dataset(...)` — everything else stays the same.
 
-### Alur lengkap (10 tahap)
+### Full pipeline (10 stages)
 
-1. **Scan & validasi dataset** — deteksi file corrupt (dipisah dari file resolusi rendah), duplikat persis (MD5), duplikat mendekati/ter-flip (perceptual hash, opsional), lalu cek keseimbangan kelas.
-2. **Stratified split** 80:10:10 (train/val/test), per kelas.
-3. **Hitung mean/std** aktual dari subset train (bukan angka ImageNet default) untuk normalisasi.
-4. **Fit parameter ICS** (`alpha`, `beta`, `p30`, `p70`) dari sampel subset validasi — parameter inilah yang menentukan ambang "kompleks vs. homogen" per region gambar.
-5. **Bangun Dataset & DataLoader** — `ImageListDataset` mengembalikan `(image_tensor, patch_size_map, label)`; `adaptive_collate_fn` menyusun batch dengan token-token berukuran variabel.
-6. **Latih Modified ViT** (adaptive patch size) — kontribusi utama.
-7. **Latih Baseline ViT** (patch 16×16 tetap) — sebagai pembanding di tabel hasil.
-8. **Structured Magnitude-Based Pruning** — pencarian rasio pruning secara iteratif + fine-tuning, berhenti begitu penurunan akurasi melewati `PruningConfig.accuracy_drop_tolerance`.
-9. **Evaluasi di test set** — akurasi, efisiensi (estimasi FLOPs), dan akurasi di bawah simulasi pencahayaan dinamis, untuk baseline maupun model yang sudah di-pruning.
-10. **Visualisasi** — kurva training, grafik pencarian rasio pruning, perbandingan baseline vs. model akhir, dan peta ukuran patch adaptif pada satu sampel gambar (menunjukkan mekanisme ICS secara visual).
+1. **Scan & validate the dataset** — detect corrupt files (kept separate from low-resolution files), exact duplicates (MD5), near-duplicates/flipped copies (perceptual hash, optional), then check class balance.
+2. **Stratified split** into 80:10:10 (train/val/test), per class.
+3. **Compute actual mean/std** from the training subset (instead of the default ImageNet numbers) for normalization.
+4. **Fit ICS parameters** (`alpha`, `beta`, `p30`, `p70`) from a sample of the validation subset — these decide the "complex vs. homogeneous" thresholds for each image region.
+5. **Build the Dataset & DataLoader** — `ImageListDataset` returns `(image_tensor, patch_size_map, label)`; `adaptive_collate_fn` assembles batches out of variable-length token sequences.
+6. **Train the Modified ViT** (adaptive patch size) — the main contribution.
+7. **Train the Baseline ViT** (fixed 16×16 patches) — used as the comparison point in the results tables.
+8. **Structured Magnitude-Based Pruning** — an iterative search over pruning ratios with fine-tuning, stopping once the accuracy drop exceeds `PruningConfig.accuracy_drop_tolerance`.
+9. **Evaluate on the test set** — accuracy, efficiency (estimated FLOPs), and accuracy under simulated dynamic lighting, for both the baseline and the final pruned model.
+10. **Visualization** — training curves, the pruning-ratio search plot, baseline-vs-final-model comparison, and an adaptive patch-size map for a sample image (a visual illustration of what the ICS mechanism is actually doing).
 
-## Konfigurasi penting
+## Key configuration
 
-Semua parameter ada di `adaptive_vit/config.py` sebagai dataclass, jadi tidak ada angka ajaib yang tersembunyi di tengah kode:
+Every parameter lives in `adaptive_vit/config.py` as a dataclass, so nothing is a magic number buried in the middle of the code:
 
-| Config | Parameter kunci | Default |
+| Config | Key parameters | Default |
 |---|---|---|
 | `DataConfig` | `image_size`, `split_ratios`, `region_size` | 224, (0.8, 0.1, 0.1), 32 |
-| `ICSConfig` | `patch_size` (kecil/sedang/besar), `p_low`/`p_high` | (8, 16, 32), 30/70 (persentil) |
-| `ModelConfig` | `num_classes` (**wajib diisi manual**), `embed_dim`, `num_layers` | — , 384, 12 |
+| `ICSConfig` | `patch_size` (small/medium/large), `p_low`/`p_high` | (8, 16, 32), 30/70 (percentile) |
+| `ModelConfig` | `num_classes` (**must be set explicitly**), `embed_dim`, `num_layers` | — , 384, 12 |
 | `TrainConfig` | `batch_size`, `learning_rate`, `num_epochs` | 32, 3e-4, 100 |
 | `PruningConfig` | `initial_prune_ratio`, `accuracy_drop_tolerance` | 0.30, 0.02 (2%) |
 
-## Catatan implementasi
+## Implementation notes
 
-- Validasi dataset (`data.validate_dataset`) memaksa `img.load()` (bukan cuma `Image.open()`) supaya file yang terpotong/rusak tertangkap saat validasi, bukan mendadak crash di tengah training.
-- `ImageListDataset.__getitem__` punya fallback: kalau ada satu file yang tetap gagal dibaca saat training (misal rusak setelah validasi), sample tersebut diganti sample lain secara acak, bukan menghentikan seluruh training run.
-- Deteksi near-duplicate/flip (`check_near_duplicates=True`) memakai perceptual hash (dHash) buatan sendiri (hanya PIL + numpy, tanpa dependency tambahan), dicek pada orientasi normal maupun hasil `mirror` horizontal — berguna karena dataset dari Kaggle sering punya sumber campuran yang berisiko menyisipkan gambar yang sama (atau flip-nya) ke split train dan test sekaligus.
+- Dataset validation (`data.validate_dataset`) forces `img.load()` (not just `Image.open()`) so truncated/corrupt files are caught during validation instead of crashing mid-training.
+- `ImageListDataset.__getitem__` has a fallback: if a file still fails to load during training (e.g. it got corrupted after validation ran), that sample is swapped for a different random one instead of crashing the whole run.
+- Near-duplicate/flip detection (`check_near_duplicates=True`) uses a self-contained perceptual hash (dHash), built with just PIL + numpy (no extra dependency), checked against both the normal orientation and a horizontal mirror — useful since Kaggle-hosted datasets are often pooled from multiple sources and can end up with the same photo (or a flipped copy of it) landing in both the train and test splits.
 
-## Sitasi dataset
+## Dataset citation
 
-Plant Village Dataset (Updated), oleh tushar5harma, Kaggle: https://www.kaggle.com/datasets/tushar5harma/plant-village-dataset-updated
+Plant Village Dataset (Updated), by tushar5harma, Kaggle: https://www.kaggle.com/datasets/tushar5harma/plant-village-dataset-updated
