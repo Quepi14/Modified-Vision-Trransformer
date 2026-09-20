@@ -1,0 +1,29 @@
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# dataset (jangan commit dataset mentah ke GitHub)
+data/
+dataset/
+plant-village-dataset-updated/
+
+# checkpoint & output eksperimen
+*.pt
+*.pth
+checkpoints/
+runs/
+outputs/
+
+# figure hasil generate (fig_*.png dibuat ulang oleh notebook/skrip)
+fig_*.png
+
+# environment
+.venv/
+venv/
+*.egg-info/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

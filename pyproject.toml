@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adaptive-vit"
+version = "0.1.0"
+description = "Adaptive Patch Size Vision Transformer optimized via Structured Magnitude-Based Pruning, for leaf pathology classification under dynamic lighting."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "numpy>=1.23",
+    "scipy>=1.9",
+    "scikit-learn>=1.1",
+    "Pillow>=9.0",
+    "matplotlib>=3.6",
+]
+
+[tool.setuptools.packages.find]
+include = ["adaptive_vit*"]
