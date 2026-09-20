@@ -9,7 +9,7 @@ Robustness to **dynamic lighting conditions** (brightness/contrast shifts and ga
 
 ## Project structure
 
-\```
+```
 adaptive_vit/                  # generic library, not tied to any specific dataset
 ├── config.py                  # config dataclasses (DataConfig, ICSConfig, ModelConfig, TrainConfig, PruningConfig)
 ├── data.py                    # dataset scanning, validation (corrupt/duplicate/near-duplicate), splitting, Dataset class
@@ -26,32 +26,32 @@ examples/
 ├── plantvillage_taxonomy.py            # dataset-specific adapter for Plant Village (species + condition -> 29 classes)
 ├── plantvillage_pipeline_example.py    # end-to-end reference script showing the call order (documentation, not meant to be run blindly)
 └── main.ipynb                          # ready-to-run Colab notebook, cell by cell, wiring the whole pipeline above together
-\```
+```
 
 `adaptive_vit/` is fully generic: if your dataset already follows a plain `root/<class_name>/*.jpg` layout, you can skip `plantvillage_taxonomy.py` entirely and call `adaptive_vit.data.scan_imagefolder(root)` directly.
 
 ## Installation
 
-\```bash
+```bash
 git clone [https://github.com/Quepi14/Modified-Vision-Trransformer](https://github.com/Quepi14/Modified-Vision-Trransformer)
 pip install -r requirements.txt
-\```
+```
 
 (Optional) to import `adaptive_vit` from anywhere without fiddling with `sys.path`, install it as a local package:
 
-\```bash
+```bash
 pip install -e .
-\```
+```
 
 ## Dataset
 
 This study uses the **Plant Village Dataset (Updated)** by `tushar5harma` on Kaggle — 9 plant species, 29 classes in total (species × condition/disease combinations).
 
-\```bash
+```bash
 # via the Kaggle CLI (requires kaggle.json to be set up first)
 kaggle datasets download -d tushar5harma/plant-village-dataset-updated
 unzip plant-village-dataset-updated.zip -d plant-village-dataset-updated
-\```
+```
 
 Once extracted, `DataConfig.dataset_root` should point to the folder that directly contains one subfolder per species.
 
@@ -68,7 +68,7 @@ Once extracted, `DataConfig.dataset_root` should point to the folder that direct
 
 A minimal example using the library directly (see `examples/plantvillage_pipeline_example.py` for the full version, including fitting ICS parameters and evaluation):
 
-\```python
+```python
 import functools
 import torch
 from torch.utils.data import DataLoader
@@ -103,7 +103,7 @@ model = ModifiedVisionTransformer(model_cfg)
 # ... build the Dataset/DataLoader objects here (see examples/plantvillage_pipeline_example.py
 #     Cells 3-5 for fitting mean/std and alpha/beta/p30/p70 before this point) ...
 model, history = train_model(model, train_loader, val_loader, train_cfg, device)
-\```
+```
 
 For the Plant Village dataset specifically, swap `avdata.scan_imagefolder(...)` for `plantvillage_taxonomy.scan_plantvillage_dataset(...)` — everything else stays the same.
 
